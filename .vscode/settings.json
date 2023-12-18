@@ -1,0 +1,6 @@
+{
+  "zig.initialSetupDone": true,
+  "files.associations": {
+    "random": "c"
+  }
+}
