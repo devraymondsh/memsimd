@@ -1,6 +1,6 @@
 .{
     .name = "memsimd",
-    .version = "0.0.0",
+    .version = "0.1.0",
     .dependencies = .{},
     .minimum_zig_version = "0.11.0",
     .paths = .{ "src", "build.zig", "build.zig.zon" },
