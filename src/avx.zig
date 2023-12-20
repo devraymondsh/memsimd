@@ -1,20 +1,39 @@
 const sse4 = @import("sse4.zig");
+const builtin = @import("builtin");
 
-extern fn asm_avx_eql(str1: *const anyopaque, str2: *const anyopaque, offset: usize) bool;
+extern fn asm_avx_eql(ptr1: *const anyopaque, ptr2: *const anyopaque, off: usize) bool;
 comptime {
-    asm (
-        \\.intel_syntax noprefix
-        \\asm_avx_eql:
-        \\        vmovups ymm0, [rdi + rdx]
-        \\        vmovups ymm1, [rsi + rdx]
-        \\        vpcmpeqb ymm0, ymm0, ymm1
-        \\        vpmovmskb eax, ymm0
-        \\        cmp     ax, -1
-        \\        sete    al
-        \\        movzx   eax, al
-        \\        vzeroupper
-        \\        ret
-    );
+    if (builtin.os.tag == .windows) {
+        // rcx, rdx, r8, r9
+        asm (
+            \\.intel_syntax noprefix
+            \\asm_avx_eql:
+            \\        vmovups ymm0, [rcx + r8]
+            \\        vmovups ymm1, [rdx + r8]
+            \\        vpcmpeqb ymm0, ymm0, ymm1
+            \\        vpmovmskb rax, ymm0
+            \\        cmp     ax, -1
+            \\        sete    al
+            \\        movzx   rax, al
+            \\        vzeroupper
+            \\        ret
+        );
+    } else {
+        // rdi, rsi, rdx, rcx
+        asm (
+            \\.intel_syntax noprefix
+            \\asm_avx_eql:
+            \\        vmovups ymm0, [rdi + rdx]
+            \\        vmovups ymm1, [rsi + rdx]
+            \\        vpcmpeqb ymm0, ymm0, ymm1
+            \\        vpmovmskb rax, ymm0
+            \\        cmp     ax, -1
+            \\        sete    al
+            \\        movzx   rax, al
+            \\        vzeroupper
+            \\        ret
+        );
+    }
 }
 
 pub fn eql_nocheck(comptime T: type, a: []const T, b: []const T) bool {

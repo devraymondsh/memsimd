@@ -1,17 +1,33 @@
 const nosimd = @import("nosimd.zig");
+const builtin = @import("builtin");
 
-extern fn asm_sse4_eql(arg1: *const anyopaque, arg2: *const anyopaque, len: usize, off: usize) bool;
+extern fn asm_sse4_eql(ptr1: *const anyopaque, ptr2: *const anyopaque, len: usize, off: usize) bool;
 comptime {
-    asm (
-        \\.intel_syntax noprefix
-        \\asm_sse4_eql:
-        \\  mov         rax, rdx
-        \\  movdqu      xmm0, xmmword ptr [rdi + rcx]
-        \\  movdqu      xmm1, xmmword ptr [rsi + rcx]
-        \\  pcmpestri   xmm0, xmm1, 24
-        \\  setae       al
-        \\  ret
-    );
+    if (builtin.os.tag == .windows) {
+        // rcx, rdx, r8, r9
+        asm (
+            \\.intel_syntax noprefix
+            \\asm_sse4_eql:
+            \\  mov         rax, r8
+            \\  movdqu      xmm0, xmmword ptr [rcx + r9]
+            \\  movdqu      xmm1, xmmword ptr [rdx + r9]
+            \\  pcmpestri   xmm0, xmm1, 24
+            \\  setae       al
+            \\  ret
+        );
+    } else {
+        // rdi, rsi, rdx, rcx
+        asm (
+            \\.intel_syntax noprefix
+            \\asm_sse4_eql:
+            \\  mov         rax, rdx
+            \\  movdqu      xmm0, xmmword ptr [rdi + rcx]
+            \\  movdqu      xmm1, xmmword ptr [rsi + rcx]
+            \\  pcmpestri   xmm0, xmm1, 24
+            \\  setae       al
+            \\  ret
+        );
+    }
 }
 pub fn eql_nocheck(comptime T: type, a: []const T, b: []const T) bool {
     const rem: usize = a.len & 0xf;
