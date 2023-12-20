@@ -60,7 +60,7 @@ pub fn test_function(eql: anytype, random_nums: [testing_types.len]std.ArrayList
             // [0] = num, [1] = num_copy, [2] = guaranteed_unequal
             const generated_num = generated_num_untyped.cast(T);
             try std.testing.expect(eql(T, generated_num[0], generated_num[1]));
-            try std.testing.expect(eql(T, generated_num[0], generated_num[2]));
+            try std.testing.expect(!eql(T, generated_num[0], generated_num[2]));
         }
     }
 }
