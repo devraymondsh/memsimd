@@ -89,5 +89,5 @@ test "Eql functions" {
     try test_function(memsimd.avx.eql, random_nums);
     try test_function(memsimd.nosimd.eql, random_nums);
     try test_function(memsimd.sse2.eql, random_nums);
-    try test_function(memsimd.sse4.eql, random_nums);
+    try test_function(memsimd.sse42.eql, random_nums);
 }

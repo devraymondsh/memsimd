@@ -1,8 +1,22 @@
 const nosimd = @import("nosimd.zig");
 const builtin = @import("builtin");
 
+extern fn asm_sse2_check() bool;
 extern fn asm_sse2_eql(ptr1: *const anyopaque, ptr2: *const anyopaque, off: usize) bool;
 comptime {
+    asm (
+        \\.intel_syntax noprefix
+        \\asm_sse2_check:
+        \\        push    1
+        \\        pop     rax
+        \\        xchg    edi, ebx
+        \\        cpuid
+        \\        xchg    edi, ebx
+        \\        mov     eax, edx
+        \\        shr     eax, 26
+        \\        and     eax, 1
+        \\        ret
+    );
     if (builtin.os.tag == .windows) {
         // rcx, rdx, r8, r9
         asm (
@@ -34,6 +48,16 @@ comptime {
     }
 }
 
+/// SSE2 support check
+pub fn check() bool {
+    return asm_sse2_check();
+}
+
+/// Equality check of a and b using SSE2 instructions without:
+/// 1: Checking the length of a and b (ensure they're equal)
+/// 2: Checking if a and b point to the same location
+/// 3: Checking if the length of a and b are zero
+/// 4: Checking if the first elements are equal without any special instruction (for faster unsuccessful checks)
 pub fn eql_nocheck(comptime T: type, a: []const T, b: []const T) bool {
     const rem: usize = a.len & 0xf;
     const len: usize = a.len -% rem;
@@ -52,6 +76,7 @@ pub fn eql_nocheck(comptime T: type, a: []const T, b: []const T) bool {
 
     return true;
 }
+/// Equality check of a and b using SSE2 instructions
 pub fn eql(comptime T: type, a: []const T, b: []const T) bool {
     if (a.len != b.len) return false;
     if (a.ptr == b.ptr) return true;

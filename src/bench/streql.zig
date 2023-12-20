@@ -68,10 +68,10 @@ pub fn main() !void {
 
     const sse4_start_time = std.time.milliTimestamp();
     for (string_array1.items, 0..) |item, idx| {
-        if (!memsimd.sse4.eql(u8, item, string_array2.items[idx])) {
+        if (!memsimd.sse42.eql(u8, item, string_array2.items[idx])) {
             std.debug.panic("Wrong comparison!\n", .{});
         }
-        if (memsimd.sse4.eql(u8, item, "@@@@@@@@@@@@@@@@@@@@@")) {
+        if (memsimd.sse42.eql(u8, item, "@@@@@@@@@@@@@@@@@@@@@")) {
             std.debug.panic("Wrong comparison!\n", .{});
         }
     }
