@@ -68,7 +68,7 @@ pub fn eql_byte(a: []const u8, b: []const u8) bool {
         }
     }
     if (rem != 0) {
-        if (!nosimd.eql_nocheck(u8, a.ptr[off..a.len], b.ptr[off..b.len])) {
+        if (!asm_sse42_eql(a.ptr, b.ptr, rem, off)) {
             return false;
         }
     }
