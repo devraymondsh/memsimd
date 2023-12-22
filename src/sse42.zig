@@ -1,4 +1,3 @@
-const nosimd = @import("nosimd.zig");
 const builtin = @import("builtin");
 
 extern fn asm_sse42_check() bool;
