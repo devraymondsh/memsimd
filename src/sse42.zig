@@ -50,7 +50,7 @@ pub fn check() bool {
     return asm_sse42_check();
 }
 
-/// Equality check of a and b (a, b are bytes) using SSE4.2 instructions without without:
+/// Equality check of a and b (a, b are bytes) using SSE4.2 instructions without:
 /// 1: Checking the length of a and b (ensure they're equal)
 /// 2: Checking if a and b point to the same location
 /// 3: Checking if the length of a and b are zero
