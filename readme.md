@@ -25,5 +25,29 @@ You can run the benchmarks by yourself with:
 zig build bench -Doptimize=ReleaseFast
 ```
 
+### Usage
+#### 1. Add memsimd to your `build.zig.zon`
+```zig
+.{
+    .name = "<your_apps_name>",
+    .version = "<your_apps_vesion>",
+    .dependencies = .{
+        // memsimd v0.1.0
+        .memsimd = .{
+            .url = "https://github.com/devraymondsh/memsimd/archive/refs/tags/v0.1.0.tar.gz",
+            .hash = "12208ce7ad284db242c305056b813b01213b74527310cc4c55523e09ff8db4ba5f9d",
+        },
+    },
+}
+```
+#### 2. Add memsimd to your `build.zig`
+```zig
+const memsimd = b.dependency("memsimd", .{
+    .target = target,
+    .optimize = optimize,
+});
+exe.addModule("memsimd", memsimd.module("memsimd"));
+```
+
 ### License
 This library is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
