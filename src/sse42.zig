@@ -61,13 +61,8 @@ pub fn eql_byte(a: []const u8, b: []const u8) bool {
     const len: usize = a.len -% rem;
 
     var off: usize = 0;
-    while (off != len) : (off +%= 16) {
-        if (!asm_sse42_eql(a.ptr, b.ptr, 16, off)) {
-            return false;
-        }
-    }
-    if (rem != 0) {
-        if (!asm_sse42_eql(a.ptr, b.ptr, rem, off)) {
+    while (off < (len +% 16)) : (off +%= 16) {
+        if (!asm_sse42_eql(a.ptr, b.ptr, @intCast(a.len - off), off)) {
             return false;
         }
     }
