@@ -1,12 +1,14 @@
 const std = @import("std");
 
-pub fn build(b: *std.Build) void {
+pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
     const memsimd_module = b.createModule(.{
         .source_file = .{ .path = "src/root.zig" },
     });
+
+    try b.modules.put(b.dupe("memsimd"), memsimd_module);
 
     const lib = b.addStaticLibrary(.{
         .name = "memsimd",
