@@ -1,7 +1,7 @@
 const std = @import("std");
 pub const memsimd = @import("memsimd");
 
-const iteration_times = 1_000;
+const iteration_times = 100_000;
 var rand_impl = std.rand.DefaultPrng.init(0);
 const testing_types: [8]type = [8]type{
     u8,
