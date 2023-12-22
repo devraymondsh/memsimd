@@ -11,7 +11,7 @@ comptime {
         \\        xchg    edi, ebx
         \\        cpuid
         \\        xchg    edi, ebx
-        \\                mov     eax, ecx
+        \\        mov     eax, ecx
         \\        shr     eax, 20
         \\        and     eax, 1
         \\        ret
