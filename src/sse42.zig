@@ -21,24 +21,25 @@ comptime {
         asm (
             \\.intel_syntax noprefix
             \\asm_sse42_eql:
-            \\  mov         rax, r8
-            \\  movdqu      xmm0, xmmword ptr [rcx + r9]
-            \\  movdqu      xmm1, xmmword ptr [rdx + r9]
-            \\  pcmpestri   xmm0, xmm1, 24
-            \\  setae       al
-            \\  ret
+            \\        movdqu      xmm0, xmmword ptr [rcx + r9]
+            \\        movdqu      xmm1, xmmword ptr [rdx + r9]
+            \\        mov         rax, r8
+            \\        mov         rdx, r8
+            \\        pcmpestri   xmm0, xmm1, 24
+            \\        setae       al
+            \\        ret
         );
     } else {
         // rdi, rsi, rdx, rcx
         asm (
             \\.intel_syntax noprefix
             \\asm_sse42_eql:
-            \\  mov         rax, rdx
-            \\  movdqu      xmm0, xmmword ptr [rdi + rcx]
-            \\  movdqu      xmm1, xmmword ptr [rsi + rcx]
-            \\  pcmpestri   xmm0, xmm1, 24
-            \\  setae       al
-            \\  ret
+            \\        movdqu      xmm0, xmmword ptr [rdi + rcx]
+            \\        movdqu      xmm1, xmmword ptr [rsi + rcx]
+            \\        mov         rax, rdx
+            \\        pcmpestri   xmm0, xmm1, 24
+            \\        setae       al
+            \\        ret
         );
     }
 }
