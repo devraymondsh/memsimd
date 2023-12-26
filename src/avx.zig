@@ -66,12 +66,12 @@ pub fn check() bool {
     return asm_avx_check();
 }
 
-/// Equality check of a and b (a, b are bytes) using AVX instructions without:
+/// Equality check of a and b (a, b are bytes) using AVX instructions (32 bytes at a time) without:
 /// 1: Checking the length of a and b (ensure they're equal)
 /// 2: Checking if a and b point to the same location
 /// 3: Checking if the length of a and b are zero
 /// 4: Checking if the first elements are equal without any special instruction (for faster unsuccessful checks)
-pub fn eql_byte(a: []const u8, b: []const u8) bool {
+pub fn eql_byte_nocheck(a: []const u8, b: []const u8) bool {
     @setRuntimeSafety(false);
 
     const rem: usize = a.len & 0x1f;
@@ -84,26 +84,26 @@ pub fn eql_byte(a: []const u8, b: []const u8) bool {
         }
     }
     if (rem != 0) {
-        if (!sse42.eql_byte(a.ptr[off..a.len], b.ptr[off..b.len])) {
+        if (!sse42.eql_byte_nocheck(a.ptr[off..a.len], b.ptr[off..b.len])) {
             return false;
         }
     }
 
     return true;
 }
-/// Equality check of a and b using AVX instructions without:
+/// Equality check of a and b using AVX instructions (32 bytes at a time) without:
 /// 1: Checking the length of a and b (ensure they're equal)
 /// 2: Checking if a and b point to the same location
 /// 3: Checking if the length of a and b are zero
 /// 4: Checking if the first elements are equal without any special instruction (for faster unsuccessful checks)
 pub fn eql_nocheck(comptime T: type, a: []const T, b: []const T) bool {
     @setRuntimeSafety(false);
-    return @call(.always_inline, eql_byte, .{
+    return @call(.always_inline, eql_byte_nocheck, .{
         @as([*]const u8, @ptrCast(a.ptr))[0 .. a.len *% @sizeOf(T)],
         @as([*]const u8, @ptrCast(b.ptr))[0 .. b.len *% @sizeOf(T)],
     });
 }
-/// Equality check of a and b using AVX instructions
+/// Equality check of a and b using AVX instructions (32 bytes at a time)
 pub fn eql(comptime T: type, a: []const T, b: []const T) bool {
     @setRuntimeSafety(false);
 

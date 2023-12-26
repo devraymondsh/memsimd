@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 pub const memsimd = @import("memsimd");
 
 const iteration_times = 100_000;
@@ -86,8 +87,17 @@ test "Eql functions" {
         }
     }
 
-    try test_function(memsimd.avx.eql, random_nums);
     try test_function(memsimd.nosimd.eql, random_nums);
-    try test_function(memsimd.sse2.eql, random_nums);
-    try test_function(memsimd.sse42.eql, random_nums);
+    if (builtin.cpu.arch != .aarch64 and builtin.cpu.arch != .aarch64_be and builtin.cpu.arch != .aarch64_32) {
+        if (memsimd.sse2.check()) {
+            try test_function(memsimd.sse2.eql, random_nums);
+        }
+        if (memsimd.sse42.check()) {
+            try test_function(memsimd.sse42.eql, random_nums);
+        }
+        if (memsimd.avx.check()) {
+            try test_function(memsimd.avx.eql, random_nums);
+        }
+        // try test_function(memsimd.avx512.eql, random_nums);
+    } else {}
 }

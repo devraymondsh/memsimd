@@ -50,12 +50,12 @@ pub fn check() bool {
     return asm_sse42_check();
 }
 
-/// Equality check of a and b (a, b are bytes) using SSE4.2 instructions without:
+/// Equality check of a and b (a, b are bytes) using SSE4.2 instructions (16 bytes at a time) without:
 /// 1: Checking the length of a and b (ensure they're equal)
 /// 2: Checking if a and b point to the same location
 /// 3: Checking if the length of a and b are zero
 /// 4: Checking if the first elements are equal without any special instruction (for faster unsuccessful checks)
-pub fn eql_byte(a: []const u8, b: []const u8) bool {
+pub fn eql_byte_nocheck(a: []const u8, b: []const u8) bool {
     @setRuntimeSafety(false);
 
     const rem: usize = a.len & 0xf;
@@ -75,19 +75,19 @@ pub fn eql_byte(a: []const u8, b: []const u8) bool {
 
     return true;
 }
-/// Equality check of a and b using SSE4.2 instructions without:
+/// Equality check of a and b using SSE4.2 instructions (16 bytes at a time) without:
 /// 1: Checking the length of a and b (ensure they're equal)
 /// 2: Checking if a and b point to the same location
 /// 3: Checking if the length of a and b are zero
 /// 4: Checking if the first elements are equal without any special instruction (for faster unsuccessful checks)
 pub fn eql_nocheck(comptime T: type, a: []const T, b: []const T) bool {
     @setRuntimeSafety(false);
-    return @call(.always_inline, eql_byte, .{
+    return @call(.always_inline, eql_byte_nocheck, .{
         @as([*]const u8, @ptrCast(a.ptr))[0 .. a.len *% @sizeOf(T)],
         @as([*]const u8, @ptrCast(b.ptr))[0 .. b.len *% @sizeOf(T)],
     });
 }
-/// Equality check of a and b using SSE4.2 instructions
+/// Equality check of a and b using SSE4.2 instructions (16 bytes at a time)
 pub fn eql(comptime T: type, a: []const T, b: []const T) bool {
     @setRuntimeSafety(false);
 
