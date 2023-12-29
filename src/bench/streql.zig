@@ -56,40 +56,71 @@ pub fn main() !void {
     const nosimd_elapsed_time = std.time.milliTimestamp() - nosimd_start_time;
 
     const sse2_start_time = std.time.milliTimestamp();
-    for (string_array1.items, 0..) |item, idx| {
-        if (!memsimd.sse2.eql(u8, item, string_array2.items[idx])) {
-            std.debug.panic("Wrong comparison!\n", .{});
+    var sse2_elapsed_time: i64 = 0;
+    if (memsimd.is_x86_64 and memsimd.sse2.check()) {
+        for (string_array1.items, 0..) |item, idx| {
+            if (!memsimd.sse2.eql(u8, item, string_array2.items[idx])) {
+                std.debug.panic("Wrong comparison!\n", .{});
+            }
+            if (memsimd.sse2.eql(u8, item, "@@@@@@@@@@@@@@@@@@@@@")) {
+                std.debug.panic("Wrong comparison!\n", .{});
+            }
         }
-        if (memsimd.sse2.eql(u8, item, "@@@@@@@@@@@@@@@@@@@@@")) {
-            std.debug.panic("Wrong comparison!\n", .{});
-        }
+        sse2_elapsed_time = std.time.milliTimestamp() - sse2_start_time;
+    } else {
+        std.debug.print("SSE2 is not supported on this machine!\n", .{});
     }
-    const sse2_elapsed_time = std.time.milliTimestamp() - sse2_start_time;
 
-    const sse4_start_time = std.time.milliTimestamp();
-    for (string_array1.items, 0..) |item, idx| {
-        if (!memsimd.sse42.eql(u8, item, string_array2.items[idx])) {
-            std.debug.panic("Wrong comparison!\n", .{});
+    const sse42_start_time = std.time.milliTimestamp();
+    var sse42_elapsed_time: i64 = 0;
+    if (memsimd.is_x86_64 and memsimd.sse42.check()) {
+        for (string_array1.items, 0..) |item, idx| {
+            if (!memsimd.sse42.eql(u8, item, string_array2.items[idx])) {
+                std.debug.panic("Wrong comparison!\n", .{});
+            }
+            if (memsimd.sse42.eql(u8, item, "@@@@@@@@@@@@@@@@@@@@@")) {
+                std.debug.panic("Wrong comparison!\n", .{});
+            }
         }
-        if (memsimd.sse42.eql(u8, item, "@@@@@@@@@@@@@@@@@@@@@")) {
-            std.debug.panic("Wrong comparison!\n", .{});
-        }
+        sse42_elapsed_time = std.time.milliTimestamp() - sse42_start_time;
+    } else {
+        std.debug.print("SSE4.2 is not supported on this machine!\n", .{});
     }
-    const sse4_elapsed_time = std.time.milliTimestamp() - sse4_start_time;
 
     const avx_start_time = std.time.milliTimestamp();
-    for (string_array1.items, 0..) |item, idx| {
-        if (!memsimd.avx.eql(u8, item, string_array2.items[idx])) {
-            std.debug.panic("Wrong comparison!\n", .{});
+    var avx_elapsed_time: i64 = 0;
+    if (memsimd.is_x86_64 and memsimd.avx.check()) {
+        for (string_array1.items, 0..) |item, idx| {
+            if (!memsimd.avx.eql(u8, item, string_array2.items[idx])) {
+                std.debug.panic("Wrong comparison!\n", .{});
+            }
+            if (memsimd.avx.eql(u8, item, "@@@@@@@@@@@@@@@@@@@@@")) {
+                std.debug.panic("Wrong comparison!\n", .{});
+            }
         }
-        if (memsimd.avx.eql(u8, item, "@@@@@@@@@@@@@@@@@@@@@")) {
-            std.debug.panic("Wrong comparison!\n", .{});
-        }
+        avx_elapsed_time = std.time.milliTimestamp() - avx_start_time;
+    } else {
+        std.debug.print("AVX is not supported on this machine!\n", .{});
     }
-    const avx_elapsed_time = std.time.milliTimestamp() - avx_start_time;
 
-    try stdout.print("No SIMD strcmp took: {any}ms\n", .{nosimd_elapsed_time});
+    try stdout.print("\nNo SIMD strcmp took: {any}ms\n", .{nosimd_elapsed_time});
     try stdout.print("SSE2 strcmp took: {any}ms\n", .{sse2_elapsed_time});
-    try stdout.print("SS4.2 strcmp took: {any}ms\n", .{sse4_elapsed_time});
+    try stdout.print("SS4.2 strcmp took: {any}ms\n", .{sse42_elapsed_time});
     try stdout.print("AVX strcmp took: {any}ms\n", .{avx_elapsed_time});
+
+    const sve_start_time = std.time.milliTimestamp();
+    var sve_elapsed_time: i64 = 0;
+    if (memsimd.is_aarch64) {
+        for (string_array1.items, 0..) |item, idx| {
+            if (!memsimd.sve.eql(u8, item, string_array2.items[idx])) {
+                std.debug.panic("Wrong comparison!\n", .{});
+            }
+            if (memsimd.sve.eql(u8, item, "@@@@@@@@@@@@@@@@@@@@@")) {
+                std.debug.panic("Wrong comparison!\n", .{});
+            }
+        }
+        sve_elapsed_time = std.time.milliTimestamp() - sve_start_time;
+
+        try stdout.print("sve strcmp took: {any}ms\n", .{sve_elapsed_time});
+    }
 }

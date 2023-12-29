@@ -1,5 +1,6 @@
 const sse42 = @import("sse42.zig");
 const builtin = @import("builtin");
+const common = @import("common.zig");
 
 extern fn asm_avx512_eql(ptr1: [*]const u8, ptr2: [*]const u8, off: usize) bool;
 comptime {
@@ -77,8 +78,8 @@ pub fn eql(comptime T: type, a: []const T, b: []const T) bool {
 
     if (a.len != b.len) return false;
     if (a.ptr == b.ptr) return true;
-    if (a.len == 0 or b.len == 0) return true;
-    if (a[0] != b[0]) return false;
+    if (a.len == 0) return true;
+    if (common.if_scalar_unequal(T, a[0], b[0])) return false;
 
     return @call(.always_inline, eql_nocheck, .{ T, a, b });
 }

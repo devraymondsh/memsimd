@@ -88,16 +88,24 @@ test "Eql functions" {
     }
 
     try test_function(memsimd.nosimd.eql, random_nums);
-    if (builtin.cpu.arch != .aarch64 and builtin.cpu.arch != .aarch64_be and builtin.cpu.arch != .aarch64_32) {
+    if (memsimd.is_x86_64) {
         if (memsimd.sse2.check()) {
             try test_function(memsimd.sse2.eql, random_nums);
+        } else {
+            std.debug.print("SSE2 is not supported on this machine!\n", .{});
         }
         if (memsimd.sse42.check()) {
             try test_function(memsimd.sse42.eql, random_nums);
+        } else {
+            std.debug.print("SSE4.2 is not supported on this machine!\n", .{});
         }
         if (memsimd.avx.check()) {
             try test_function(memsimd.avx.eql, random_nums);
+        } else {
+            std.debug.print("AVX is not supported on this machine!\n", .{});
         }
         // try test_function(memsimd.avx512.eql, random_nums);
-    } else {}
+    } else {
+        try test_function(memsimd.sve.eql, random_nums);
+    }
 }

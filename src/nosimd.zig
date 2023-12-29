@@ -1,4 +1,6 @@
-/// Equality check of a and b no special instructions without:
+const common = @import("common.zig");
+
+/// Equality check of a and b using no special instructions without:
 /// 1: Checking the length of a and b (ensure they're equal)
 /// 2: Checking if a and b point to the same location
 /// 3: Checking if the length of a and b are zero
@@ -13,8 +15,8 @@ pub fn eql_nocheck(comptime T: type, a: []const T, b: []const T) bool {
 pub fn eql(comptime T: type, a: []const T, b: []const T) bool {
     if (a.len != b.len) return false;
     if (a.ptr == b.ptr) return true;
-    if (a.len == 0 or b.len == 0) return true;
-    if (a[0] != b[0]) return false;
+    if (a.len == 0) return true;
+    if (common.if_scalar_unequal(T, a[0], b[0])) return false;
 
     return eql_nocheck(T, a, b);
 }
