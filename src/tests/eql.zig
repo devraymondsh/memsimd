@@ -57,9 +57,20 @@ const GeneratedNum = struct {
 
 pub fn test_function(eql: anytype, random_nums: [testing_types.len]std.ArrayList(GeneratedNum)) !void {
     inline for (testing_types, 0..) |T, idx| {
-        for (random_nums[idx].items) |generated_num_untyped| {
+        for (random_nums[idx].items, 0..) |generated_num_untyped, randix| {
+
             // [0] = num, [1] = num_copy, [2] = guaranteed_unequal
             const generated_num = generated_num_untyped.cast(T);
+
+            generated_num[0][generated_num[0].len - 1] = 0;
+
+            if (!eql(T, generated_num[0], generated_num[1])) {
+                std.debug.panic("Expected true but got false (idx: {any}). A: {any}, b: {any}", .{ randix, generated_num[0], generated_num[1] });
+            }
+            if (eql(T, generated_num[0], generated_num[2])) {
+                std.debug.panic("Expected false but got true (idx: {any}). A: {any}, b: {any}", .{ randix, generated_num[0], generated_num[2] });
+            }
+
             try std.testing.expect(eql(T, generated_num[0], generated_num[1]));
             try std.testing.expect(!eql(T, generated_num[0], generated_num[2]));
         }
@@ -105,7 +116,7 @@ test "Eql functions" {
             std.debug.print("AVX is not supported on this machine!\n", .{});
         }
         // try test_function(memsimd.avx512.eql, random_nums);
-    } else {
+    } else if (memsimd.is_aarch64) {
         try test_function(memsimd.sve.eql, random_nums);
     }
 }

@@ -1,6 +1,7 @@
 const builtin = @import("builtin");
 const nosimd = @import("nosimd.zig");
 const common = @import("common.zig");
+const std = @import("std");
 
 extern fn asm_sve_eql(ptr1: [*]const u8, ptr2: [*]const u8, off: usize) bool;
 comptime {
@@ -9,10 +10,7 @@ comptime {
         \\      ldr     q1, [x0, x2]
         \\      ldr     q0, [x1, x2]
         \\      cmeq    v0.16b, v0.16b, v1.16b
-        \\      umaxv   b0, v0.16b
         \\      umov    w0, v0.b[0]
-        \\      tst     w0, 255
-        \\      cset    w0, eq
         \\      ret
     );
 }
@@ -31,13 +29,17 @@ pub fn eql_byte_nocheck(a: []const u8, b: []const u8) bool {
     var off: usize = 0;
     while (off != len) : (off +%= 16) {
         if (!asm_sve_eql(a.ptr, b.ptr, off)) {
+            // std.debug.print("False in SVE. A: {any} B: {any}\n", .{ a[off..][0..16], b[off..][0..16] });
             return false;
         }
+        // std.debug.print("True in SVE. A: {any} B: {any}\n", .{ a[off..][0..16], b[off..][0..16] });
     }
     if (rem != 0) {
         if (!nosimd.eql_nocheck(u8, a.ptr[off..a.len], b.ptr[off..b.len])) {
+            // std.debug.print("False in Nosimd. A: {any} B: {any}\n", .{ a[off..a.len], b[off..b.len] });
             return false;
         }
+        // std.debug.print("True in Nosimd. A: {any} B: {any}\n", .{ a[off..a.len], b[off..b.len] });
     }
 
     return true;
@@ -61,7 +63,7 @@ pub fn eql(comptime T: type, a: []const T, b: []const T) bool {
     if (a.len != b.len) return false;
     if (a.ptr == b.ptr) return true;
     if (a.len == 0) return true;
-    if (common.if_scalar_unequal(T, a[0], b[0])) return false;
+    if (common.if_scalar_unequal(T, a, b)) return false;
 
     return @call(.always_inline, eql_nocheck, .{ T, a, b });
 }
