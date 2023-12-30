@@ -34,15 +34,41 @@ pub fn main() !void {
     for (0..maximum_iterations) |_| {
         const strlen = rand_impl.random().intRangeAtMost(usize, 1, 1024);
 
-        var allocated_str1 = try allocator.alloc(u8, strlen);
-        var allocated_str2 = try allocator.alloc(u8, strlen);
+        var allocated_str1 = try allocator.alloc(u8, strlen + 1);
+        var allocated_str2 = try allocator.alloc(u8, strlen + 1);
         for (0..strlen) |randstr_idx| {
             allocated_str1[randstr_idx] = charset[rand_impl.random().intRangeAtMost(usize, 0, charset.len - 1)];
             allocated_str2[randstr_idx] = allocated_str1[randstr_idx];
         }
+
+        allocated_str1[allocated_str1.len - 1] = 0;
+        allocated_str2[allocated_str1.len - 1] = 0;
+
         try string_array1.append(allocated_str1);
         try string_array2.append(allocated_str2);
     }
+
+    const strcmp_start_time = std.time.milliTimestamp();
+    for (string_array1.items, 0..) |item, idx| {
+        if (std.zig.c_builtins.__builtin_strcmp(item.ptr, string_array2.items[idx].ptr) != 0) {
+            std.debug.panic("Wrong comparison!\n", .{});
+        }
+        if (std.zig.c_builtins.__builtin_strcmp(item.ptr, "@@@@@@@@@@@@@@@@@@@@@") == 0) {
+            std.debug.panic("Wrong comparison!\n", .{});
+        }
+    }
+    const strcmp_elapsed_time = std.time.milliTimestamp() - strcmp_start_time;
+
+    const std_start_time = std.time.milliTimestamp();
+    for (string_array1.items, 0..) |item, idx| {
+        if (!std.mem.eql(u8, item, string_array2.items[idx])) {
+            std.debug.panic("Wrong comparison!\n", .{});
+        }
+        if (std.mem.eql(u8, item, "@@@@@@@@@@@@@@@@@@@@@")) {
+            std.debug.panic("Wrong comparison!\n", .{});
+        }
+    }
+    const std_elapsed_time = std.time.milliTimestamp() - std_start_time;
 
     const nosimd_start_time = std.time.milliTimestamp();
     for (string_array1.items, 0..) |item, idx| {
@@ -103,7 +129,9 @@ pub fn main() !void {
         std.debug.print("AVX is not supported on this machine!\n", .{});
     }
 
-    try stdout.print("\nNo SIMD strcmp took: {any}ms\n", .{nosimd_elapsed_time});
+    try stdout.print("\nC's builtin strcmp took: {any}ms\n", .{strcmp_elapsed_time});
+    try stdout.print("Zig's std SIMD strcmp took: {any}ms\n", .{std_elapsed_time});
+    try stdout.print("No SIMD strcmp took: {any}ms\n", .{nosimd_elapsed_time});
     try stdout.print("SSE2 strcmp took: {any}ms\n", .{sse2_elapsed_time});
     try stdout.print("SS4.2 strcmp took: {any}ms\n", .{sse42_elapsed_time});
     try stdout.print("AVX strcmp took: {any}ms\n", .{avx_elapsed_time});

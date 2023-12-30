@@ -26,6 +26,7 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = .{ .path = "src/tests/eql.zig" },
     });
     const eql_tests_run = b.addRunArtifact(eql_tests);
+    eql_tests.linkLibC();
     eql_tests.addModule("memsimd", memsimd_module);
     tests.dependOn(&eql_tests_run.step);
 
