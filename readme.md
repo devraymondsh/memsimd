@@ -6,18 +6,20 @@ One of the main goals of this library is to provide a fast way to compare two sl
 
 Here are the benchmark's results on the Intel core i5 12400. As you can see some CPUs like this may use AVX's performance capabilities for SSE2 instructions. So don't always expect the SSE4.2 to be faster than the SSE2 version.
 ```
-No SIMD strcmp took: 190ms
-SSE2 strcmp took: 56ms
-SS4.2 strcmp took: 73ms
-AVX strcmp took: 54ms
+C's builtin strcmp took: 148ms
+Zig's std SIMD strcmp took: 143ms
+No SIMD strcmp took: 199ms
+SSE2 strcmp took: 54ms
+SS4.2 strcmp took: 75ms
+AVX strcmp took: 46ms
 ```
 
-Here are the benchmark results on AMD R9 5900HS. You can see here that the SSE4.2 version is a little faster than the SSE2 version as some may expect:
+Here are the benchmark's results on Mac M1 (Aarch64):
 ```
-No SIMD strcmp took: 292ms
-SSE2 strcmp took: 100ms
-SS4.2 strcmp took: 92ms
-AVX strcmp took: 78ms
+C's builtin strcmp took: 528ms
+Zig's std SIMD strcmp took: 301ms
+No SIMD strcmp took: 287ms
+SVE strcmp took: 55ms
 ```
 
 You can run the benchmarks by yourself with:
