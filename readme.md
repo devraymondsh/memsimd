@@ -34,10 +34,10 @@ zig build bench -Doptimize=ReleaseFast
     .name = "<your_apps_name>",
     .version = "<your_apps_vesion>",
     .dependencies = .{
-        // memsimd v0.1.0
+        // memsimd v0.2.0
         .memsimd = .{
-            .url = "https://github.com/devraymondsh/memsimd/archive/refs/tags/v0.1.0.tar.gz",
-            .hash = "12208ce7ad284db242c305056b813b01213b74527310cc4c55523e09ff8db4ba5f9d",
+            .url = "https://github.com/devraymondsh/memsimd/archive/refs/tags/v0.2.0.tar.gz",
+            .hash = "1220f41ad9de27c2aef3ec82aea399d66217163fe7f05af1a25f6e7d11cd2d8621ba",
         },
     },
 }
