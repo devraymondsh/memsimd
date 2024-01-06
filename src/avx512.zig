@@ -2,37 +2,41 @@ const sse42 = @import("sse42.zig");
 const builtin = @import("builtin");
 const common = @import("common.zig");
 
-extern fn asm_avx512_eql(ptr1: [*]const u8, ptr2: [*]const u8, off: usize) bool;
+/// AVX512 (AVX-512BW) support check
+pub fn check() bool {
+    @setRuntimeSafety(false);
+    return asm volatile (
+        \\.intel_syntax noprefix
+        \\ push    1
+        \\ pop     rax
+        \\ xchg    edi, ebx
+        \\ cpuid
+        \\ xchg    edi, ebx
+        \\ mov     eax, ecx
+        \\ shr     eax, 16
+        \\ and     eax, 1
+        \\ shl     ecx, 14
+        \\ shr     ecx, 30
+        \\ and     ecx, 1
+        \\ or      eax, ecx
+        : [_] "=r" (-> bool),
+    );
+}
+
+extern fn _avx512_asm_eql(ptr1: [*]const u8, ptr2: [*]const u8, off: usize) bool;
 comptime {
-    if (builtin.os.tag == .windows) {
-        // rcx, rdx, r8, r9
-        asm (
-            \\.intel_syntax noprefix
-            \\asm_avx512_eql:
-            \\        vmovdqu64 zmm0, zmmword ptr [rcx + r8]
-            \\        vmovdqu64 zmm1, zmmword ptr [rdx + r8]
-            \\        vpcmpeqb k0, zmm0, zmm1
-            \\        kortestq k0, k0
-            \\        sete    al
-            \\        movzx   rax, al
-            \\        vzeroupper
-            \\        ret
-        );
-    } else {
-        // rdi, rsi, rdx, rcx
-        asm (
-            \\.intel_syntax noprefix
-            \\asm_avx512_eql:
-            \\        vmovdqu64 zmm0, zmmword ptr [rdi + rdx]
-            \\        vmovdqu64 zmm1, zmmword ptr [rsi + rdx]
-            \\        vpcmpeqb k0, zmm0, zmm1
-            \\        kortestq k0, k0
-            \\        sete    al
-            \\        movzx   rax, al
-            \\        vzeroupper
-            \\        ret
-        );
-    }
+    asm (
+        \\.intel_syntax noprefix
+        \\
+        ++ common.underscore_prefix("avx512_asm_eql:\n") ++
+            " vmovdqu64  zmm0, zmmword ptr [" ++ common.arg1_reg ++ " + " ++ common.arg3_reg ++ "]\n" ++
+            " vmovdqu64  zmm1, zmmword ptr [" ++ common.arg2_reg ++ " + " ++ common.arg3_reg ++ "]\n" ++
+            \\ vpcmpeqb  k0, zmm0, zmm1
+            \\ kortestq k0, k0
+            \\ sete    al
+            \\ vzeroupper
+            \\ ret
+    );
 }
 
 /// Equality check of a and b (a, b are bytes) using AVX512 instructions (64 bytes at a time) without:
@@ -48,7 +52,7 @@ pub fn eql_byte_nocheck(a: []const u8, b: []const u8) bool {
 
     var off: usize = 0;
     while (off < len) : (off +%= 64) {
-        if (!asm_avx512_eql(a.ptr, b.ptr, off)) {
+        if (!_avx512_asm_eql(a.ptr, b.ptr, off)) {
             return false;
         }
     }

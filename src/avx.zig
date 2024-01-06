@@ -2,69 +2,38 @@ const sse42 = @import("sse42.zig");
 const builtin = @import("builtin");
 const common = @import("common.zig");
 
-extern fn asm_avx_check() bool;
-extern fn asm_avx_eql(ptr1: [*]const u8, ptr2: [*]const u8, off: usize) bool;
-comptime {
-    asm (
-        \\.intel_syntax noprefix
-        \\asm_avx_check:
-        \\        push    1
-        \\        pop     rax
-        \\        xchg    edi, ebx
-        \\        cpuid
-        \\        xchg    edi, ebx
-        \\        mov     eax, ecx
-        \\        not     ecx
-        \\        test    ecx, 402653184
-        \\        jne    osxsave
-        \\        xor     ecx, ecx
-        \\        xgetbv
-        \\        not     eax
-        \\        test    al, 6
-        \\        sete    al
-        \\        ret
-        \\osxsave:
-        \\        shr     eax, 28
-        \\        and     al, 1
-        \\        ret
-    );
-    if (builtin.os.tag == .windows) {
-        // rcx, rdx, r8, r9
-        asm (
-            \\.intel_syntax noprefix
-            \\asm_avx_eql:
-            \\        vmovups ymm0, [rcx + r8]
-            \\        vmovups ymm1, [rdx + r8]
-            \\        vpcmpeqb ymm0, ymm0, ymm1
-            \\        vpmovmskb rax, ymm0
-            \\        cmp     ax, -1
-            \\        sete    al
-            \\        movzx   rax, al
-            \\        vzeroupper
-            \\        ret
-        );
-    } else {
-        // rdi, rsi, rdx, rcx
-        asm (
-            \\.intel_syntax noprefix
-            \\asm_avx_eql:
-            \\        vmovups ymm0, [rdi + rdx]
-            \\        vmovups ymm1, [rsi + rdx]
-            \\        vpcmpeqb ymm0, ymm0, ymm1
-            \\        vpmovmskb rax, ymm0
-            \\        cmp     ax, -1
-            \\        sete    al
-            \\        movzx   rax, al
-            \\        vzeroupper
-            \\        ret
-        );
-    }
-}
-
 /// AVX support check
 pub fn check() bool {
     @setRuntimeSafety(false);
-    return asm_avx_check();
+    return asm (
+        \\.intel_syntax noprefix
+        \\ push   1
+        \\ pop    rax
+        \\ xchg   edi, ebx
+        \\ cpuid  
+        \\ xchg   edi, ebx
+        \\ mov    eax, ecx
+        \\ shr    eax, 28
+        \\ and    eax, 1
+        : [_] "=r" (-> bool),
+    );
+}
+
+extern fn _avx_asm_eql(ptr1: [*]const u8, ptr2: [*]const u8, off: usize) bool;
+comptime {
+    asm (
+        \\.intel_syntax noprefix
+        \\
+        ++ common.underscore_prefix("avx_asm_eql:\n") ++
+            " vmovups  ymm0, [" ++ common.arg1_reg ++ " + " ++ common.arg3_reg ++ "]\n" ++
+            " vmovups  ymm1, [" ++ common.arg2_reg ++ " + " ++ common.arg3_reg ++ "]\n" ++
+            \\ vpcmpeqb   ymm0, ymm0, ymm1
+            \\ vpmovmskb  rax, xmm0
+            \\ cmp     ax, -1
+            \\ sete    al
+            \\ vzeroupper
+            \\ ret
+    );
 }
 
 /// Equality check of a and b (a, b are bytes) using AVX instructions (32 bytes at a time) without:
@@ -80,7 +49,7 @@ pub fn eql_byte_nocheck(a: []const u8, b: []const u8) bool {
 
     var off: usize = 0;
     while (off < len) : (off +%= 32) {
-        if (!asm_avx_eql(a.ptr, b.ptr, off)) {
+        if (!_avx_asm_eql(a.ptr, b.ptr, off)) {
             return false;
         }
     }

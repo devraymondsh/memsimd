@@ -2,9 +2,9 @@ const std = @import("std");
 const builtin = @import("builtin");
 pub const memsimd = @import("memsimd");
 
-const iteration_times = 100_000;
+const iteration_times = 10_000;
 var rand_impl = std.rand.DefaultPrng.init(0);
-const testing_types: [8]type = [8]type{
+const testing_types: [16]type = [16]type{
     u8,
     i8,
     u16,
@@ -13,110 +13,91 @@ const testing_types: [8]type = [8]type{
     i32,
     u64,
     i64,
-};
-const GeneratedNum = struct {
-    len: usize,
-    num: *void,
-    num_copy: *void,
-    guaranteed_unequal: *void,
-
-    // [0] = num, [1] = num_copy, [2] = guaranteed_unequal
-    fn cast(self: *const GeneratedNum, comptime T: type) [3][]T {
-        var num: []T = undefined;
-        num.ptr = @as([*]T, @alignCast(@ptrCast(self.num)));
-        num.len = self.len;
-        var num_copy: []T = undefined;
-        num_copy.ptr = @as([*]T, @alignCast(@ptrCast(self.num_copy)));
-        num_copy.len = self.len;
-        var guaranteed_unequal: []T = undefined;
-        guaranteed_unequal.ptr = @as([*]T, @alignCast(@ptrCast(self.guaranteed_unequal)));
-        guaranteed_unequal.len = self.len;
-
-        return .{ num, num_copy, guaranteed_unequal };
-    }
-
-    fn gen(comptime T: type, allocator: std.mem.Allocator, min_length: usize, max_length: usize) !GeneratedNum {
-        const strlen = rand_impl.random().intRangeAtMost(usize, min_length, max_length);
-        var num = try allocator.alloc(T, strlen);
-        var num_copy = try allocator.alloc(T, strlen);
-        var guaranteed_unequal = try allocator.alloc(T, strlen);
-        for (0..strlen) |randnum_idx| {
-            num[randnum_idx] = rand_impl.random().intRangeAtMost(T, std.math.minInt(T), std.math.maxInt(T));
-            num_copy[randnum_idx] = num[randnum_idx];
-            guaranteed_unequal[randnum_idx] = std.math.minInt(T);
-        }
-
-        // This ensures that the num_arr3 isn't equal to num_arr1 and num_arr2
-        if (std.mem.eql(T, num, guaranteed_unequal)) {
-            return gen(T, allocator, min_length, max_length);
-        }
-
-        return GeneratedNum{ .num = @ptrCast(num.ptr), .num_copy = @ptrCast(num_copy.ptr), .guaranteed_unequal = @ptrCast(guaranteed_unequal.ptr), .len = strlen };
-    }
+    i80,
+    u80,
+    i128,
+    u128,
+    i256,
+    i256,
+    f32,
+    f64,
 };
 
-pub fn test_function(eql: anytype, random_nums: [testing_types.len]std.ArrayList(GeneratedNum)) !void {
-    inline for (testing_types, 0..) |T, idx| {
-        for (random_nums[idx].items, 0..) |generated_num_untyped, randix| {
+fn genRandomNumber(comptime T: type) T {
+    if (@typeInfo(T) == .Int) {
+        return rand_impl.random().int(T);
+    } else if (@typeInfo(T) == .Float) {
+        return rand_impl.random().float(T);
+    } else {
+        @compileLog("Unkown numeric type: {any}!\n", .{@typeName(T)});
+        @compileError("Invalid numeric type!\n");
+    }
+}
+fn genNumberArr(comptime T: type, allocator: std.mem.Allocator, len: usize) ![]T {
+    var arr = try allocator.alloc(T, len);
+    for (0..len) |idx| {
+        arr[idx] = genRandomNumber(T);
+    }
+    return arr;
+}
+pub fn test_function(eql: anytype, allocator: std.mem.Allocator) !void {
+    inline for (testing_types) |testing_type| {
+        for (0..iteration_times) |idx| {
+            const number_arr = try genNumberArr(testing_type, allocator, rand_impl.random().intRangeAtMost(usize, 1, 500));
+            const number_arr_dup = try allocator.dupe(testing_type, number_arr);
 
-            // [0] = num, [1] = num_copy, [2] = guaranteed_unequal
-            const generated_num = generated_num_untyped.cast(T);
-
-            generated_num[0][generated_num[0].len - 1] = 0;
-
-            if (!eql(T, generated_num[0], generated_num[1])) {
-                std.debug.panic("Expected true but got false (idx: {any}). A: {any}, b: {any}", .{ randix, generated_num[0], generated_num[1] });
+            // Ensuring the newly generated number is not equal to the previous one
+            var another_number_arr = try genNumberArr(testing_type, allocator, rand_impl.random().intRangeAtMost(usize, 1, 500));
+            while (std.mem.eql(testing_type, number_arr, another_number_arr)) {
+                another_number_arr = try genNumberArr(testing_type, allocator, rand_impl.random().intRangeAtMost(usize, 1, 500));
             }
-            if (eql(T, generated_num[0], generated_num[2])) {
-                std.debug.panic("Expected false but got true (idx: {any}). A: {any}, b: {any}", .{ randix, generated_num[0], generated_num[2] });
-            }
 
-            try std.testing.expect(eql(T, generated_num[0], generated_num[1]));
-            try std.testing.expect(!eql(T, generated_num[0], generated_num[2]));
+            if (!eql(testing_type, number_arr, number_arr_dup)) {
+                std.debug.print("Comparison error. Expected true but got false.\n", .{});
+                std.debug.print("Left: {any}.\n", .{number_arr});
+                std.debug.print("Right: {any}.\n", .{number_arr_dup});
+                std.debug.panic("Iteration index: {any}\n", .{idx});
+            }
+            if (eql(testing_type, number_arr, another_number_arr)) {
+                std.debug.print("Comparison error. Expected false but got true.\n", .{});
+                std.debug.print("Left: {any}.\n", .{number_arr});
+                std.debug.print("Right: {any}.\n", .{another_number_arr});
+                std.debug.panic("Iteration index: {any}\n", .{idx});
+            }
         }
     }
 }
 
 test "Eql functions" {
-    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var arena = std.heap.ArenaAllocator.init(gpa.allocator());
     const allocator = arena.allocator();
-    var random_nums: [testing_types.len]std.ArrayList(GeneratedNum) = undefined;
-    for (0..testing_types.len) |idx| {
-        random_nums[idx] = std.ArrayList(GeneratedNum).init(allocator);
-    }
     defer {
-        for (0..testing_types.len) |idx| {
-            random_nums[idx].deinit();
-        }
         arena.deinit();
+        _ = gpa.deinit();
     }
 
-    for (0..iteration_times) |_| {
-        inline for (testing_types, 0..) |T, type_idx| {
-            const randnum = try GeneratedNum.gen(T, allocator, 1, 40);
-            try random_nums[type_idx].append(randnum);
-        }
-    }
-
-    try test_function(memsimd.nosimd.eql, random_nums);
+    try test_function(memsimd.nosimd.eql, allocator);
     if (memsimd.is_x86_64) {
         if (memsimd.sse2.check()) {
-            try test_function(memsimd.sse2.eql, random_nums);
+            try test_function(memsimd.sse2.eql, allocator);
         } else {
             std.debug.print("SSE2 is not supported on this machine!\n", .{});
         }
         if (memsimd.sse42.check()) {
-            try test_function(memsimd.sse42.eql, random_nums);
+            try test_function(memsimd.sse42.eql, allocator);
         } else {
             std.debug.print("SSE4.2 is not supported on this machine!\n", .{});
         }
         if (memsimd.avx.check()) {
-            try test_function(memsimd.avx.eql, random_nums);
+            try test_function(memsimd.avx.eql, allocator);
         } else {
             std.debug.print("AVX is not supported on this machine!\n", .{});
         }
-        // try test_function(memsimd.avx512.eql, random_nums);
+        if (memsimd.avx512.check()) {
+            try test_function(memsimd.avx512.eql, allocator);
+        }
     } else if (memsimd.is_aarch64) {
-        try test_function(memsimd.sve.eql, random_nums);
+        try test_function(memsimd.sve.eql, allocator);
     }
 }

@@ -1,54 +1,37 @@
 const builtin = @import("builtin");
 const common = @import("common.zig");
 
-extern fn asm_sse42_check() bool;
-extern fn asm_sse42_eql(ptr1: [*]const u8, ptr2: [*]const u8, len: usize, off: usize) bool;
-comptime {
-    asm (
-        \\.intel_syntax noprefix
-        \\asm_sse42_check:
-        \\        push    1
-        \\        pop     rax
-        \\        xchg    edi, ebx
-        \\        cpuid
-        \\        xchg    edi, ebx
-        \\        mov     eax, ecx
-        \\        shr     eax, 20
-        \\        and     eax, 1
-        \\        ret
-    );
-    if (builtin.os.tag == .windows) {
-        // rcx, rdx, r8, r9
-        asm (
-            \\.intel_syntax noprefix
-            \\asm_sse42_eql:
-            \\        movdqu      xmm0, xmmword ptr [rcx + r9]
-            \\        movdqu      xmm1, xmmword ptr [rdx + r9]
-            \\        mov         rax, r8
-            \\        mov         rdx, r8
-            \\        pcmpestri   xmm0, xmm1, 24
-            \\        setae       al
-            \\        ret
-        );
-    } else {
-        // rdi, rsi, rdx, rcx
-        asm (
-            \\.intel_syntax noprefix
-            \\asm_sse42_eql:
-            \\        movdqu      xmm0, xmmword ptr [rdi + rcx]
-            \\        movdqu      xmm1, xmmword ptr [rsi + rcx]
-            \\        mov         rax, rdx
-            \\        pcmpestri   xmm0, xmm1, 24
-            \\        setae       al
-            \\        ret
-        );
-    }
-}
-
 /// SSE4.2 support check
 pub fn check() bool {
     @setRuntimeSafety(false);
-    return asm_sse42_check();
+    return asm volatile (
+        \\.intel_syntax noprefix
+        \\ push   1
+        \\ pop    rax
+        \\ xchg   edi, ebx
+        \\ cpuid  
+        \\ xchg   edi, ebx
+        \\ mov    eax, ecx
+        \\ shr    eax, 20
+        \\ and    eax, 1
+        : [_] "=r" (-> bool),
+    );
+}
+
+extern fn _sse42_asm_eql(ptr1: [*]const u8, ptr2: [*]const u8, len: usize, off: usize) bool;
+comptime {
+    asm (
+        \\.intel_syntax noprefix
+        \\
+        ++ common.underscore_prefix("sse42_asm_eql:\n") ++
+            " movdqu  xmm0, xmmword ptr [" ++ common.arg1_reg ++ " + " ++ common.arg4_reg ++ "]\n" ++
+            " movdqu  xmm1, xmmword ptr [" ++ common.arg2_reg ++ " + " ++ common.arg4_reg ++ "]\n" ++
+            " mov rax, " ++ common.arg3_reg ++ "\n" ++
+            " mov rdx, " ++ common.arg3_reg ++ "\n" ++
+            \\ pcmpestri  xmm0, xmm1, 24
+            \\ setae      al
+            \\ ret
+    );
 }
 
 /// Equality check of a and b (a, b are bytes) using SSE4.2 instructions (16 bytes at a time) without:
@@ -64,12 +47,12 @@ pub fn eql_byte_nocheck(a: []const u8, b: []const u8) bool {
 
     var off: usize = 0;
     while (off != len) : (off +%= 16) {
-        if (!asm_sse42_eql(a.ptr, b.ptr, 16, off)) {
+        if (!_sse42_asm_eql(a.ptr, b.ptr, 16, off)) {
             return false;
         }
     }
     if (rem != 0) {
-        if (!asm_sse42_eql(a.ptr, b.ptr, rem, off)) {
+        if (!_sse42_asm_eql(a.ptr, b.ptr, rem, off)) {
             return false;
         }
     }

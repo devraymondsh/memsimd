@@ -5,7 +5,7 @@ pub fn build(b: *std.Build) !void {
     const optimize = b.standardOptimizeOption(.{});
 
     const memsimd_module = b.createModule(.{
-        .source_file = .{ .path = "src/root.zig" },
+        .root_source_file = .{ .path = "src/root.zig" },
     });
 
     try b.modules.put(b.dupe("memsimd"), memsimd_module);
@@ -27,7 +27,7 @@ pub fn build(b: *std.Build) !void {
     });
     const eql_tests_run = b.addRunArtifact(eql_tests);
     eql_tests.linkLibC();
-    eql_tests.addModule("memsimd", memsimd_module);
+    eql_tests.root_module.addImport("memsimd", memsimd_module);
     tests.dependOn(&eql_tests_run.step);
 
     const bench_step = b.step("bench", "Run the string benchmark");
@@ -38,6 +38,6 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
     const run_benchmarks = b.addRunArtifact(benchmarks_exe);
-    benchmarks_exe.addModule("memsimd", memsimd_module);
+    benchmarks_exe.root_module.addImport("memsimd", memsimd_module);
     bench_step.dependOn(&run_benchmarks.step);
 }

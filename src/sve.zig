@@ -3,19 +3,18 @@ const nosimd = @import("nosimd.zig");
 const common = @import("common.zig");
 const std = @import("std");
 
-extern fn _asm_sve_eql(ptr1: [*]const u8, ptr2: [*]const u8, off: usize) bool;
+extern fn _sve_asm_eql(ptr1: [*]const u8, ptr2: [*]const u8, off: usize) bool;
 comptime {
-    asm (
-        \\_asm_sve_eql:
-        \\      ldr     q1, [x0, x2]
-        \\      ldr     q0, [x1, x2]
-        \\      cmeq    v0.16b, v0.16b, v1.16b
-        \\      umov    w0, v0.b[0]
-        \\      ret
+    asm (common.underscore_prefix("sve_asm_eql:\n") ++
+            \\      ldr     q1, [x0, x2]
+            \\      ldr     q0, [x1, x2]
+            \\      cmeq    v0.16b, v0.16b, v1.16b
+            \\      smov    w0, v0.b[0]
+            \\      ret
     );
 }
 
-/// Equality check of a and b (a, b are bytes) using sve instructions (16 bytes at a time) without:
+/// Equality check of a and b (a, b are bytes) using SVE instructions (16 bytes at a time) without:
 /// 1: Checking the length of a and b (ensure they're equal)
 /// 2: Checking if a and b point to the same location
 /// 3: Checking if the length of a and b are zero
@@ -28,23 +27,19 @@ pub fn eql_byte_nocheck(a: []const u8, b: []const u8) bool {
 
     var off: usize = 0;
     while (off != len) : (off +%= 16) {
-        if (!_asm_sve_eql(a.ptr, b.ptr, off)) {
-            // std.debug.print("False in SVE. A: {any} B: {any}\n", .{ a[off..][0..16], b[off..][0..16] });
+        if (!_sve_asm_eql(a.ptr, b.ptr, off)) {
             return false;
         }
-        // std.debug.print("True in SVE. A: {any} B: {any}\n", .{ a[off..][0..16], b[off..][0..16] });
     }
     if (rem != 0) {
         if (!nosimd.eql_nocheck(u8, a.ptr[off..a.len], b.ptr[off..b.len])) {
-            // std.debug.print("False in Nosimd. A: {any} B: {any}\n", .{ a[off..a.len], b[off..b.len] });
             return false;
         }
-        // std.debug.print("True in Nosimd. A: {any} B: {any}\n", .{ a[off..a.len], b[off..b.len] });
     }
 
     return true;
 }
-/// Equality check of a and b using sve instructions (16 bytes at a time) without:
+/// Equality check of a and b using SVE instructions (16 bytes at a time) without:
 /// 1: Checking the length of a and b (ensure they're equal)
 /// 2: Checking if a and b point to the same location
 /// 3: Checking if the length of a and b are zero
@@ -56,7 +51,7 @@ pub fn eql_nocheck(comptime T: type, a: []const T, b: []const T) bool {
         @as([*]const u8, @ptrCast(b.ptr))[0 .. b.len *% @sizeOf(T)],
     });
 }
-/// Equality check of a and b using sve instructions (16 bytes at a time)
+/// Equality check of a and b using SVE instructions (16 bytes at a time)
 pub fn eql(comptime T: type, a: []const T, b: []const T) bool {
     @setRuntimeSafety(false);
 

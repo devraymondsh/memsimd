@@ -2,57 +2,37 @@ const nosimd = @import("nosimd.zig");
 const builtin = @import("builtin");
 const common = @import("common.zig");
 
-extern fn asm_sse2_check() bool;
-extern fn asm_sse2_eql(ptr1: [*]const u8, ptr2: [*]const u8, off: usize) bool;
-comptime {
-    asm (
-        \\.intel_syntax noprefix
-        \\asm_sse2_check:
-        \\        push    1
-        \\        pop     rax
-        \\        xchg    edi, ebx
-        \\        cpuid
-        \\        xchg    edi, ebx
-        \\        mov     eax, edx
-        \\        shr     eax, 26
-        \\        and     eax, 1
-        \\        ret
-    );
-    if (builtin.os.tag == .windows) {
-        // rcx, rdx, r8, r9
-        asm (
-            \\.intel_syntax noprefix
-            \\asm_sse2_eql:
-            \\        movups  xmm0, [rcx + r8]
-            \\        movups  xmm1, [rdx + r8]
-            \\        pcmpeqb xmm0, xmm1
-            \\        pmovmskb rax, xmm0
-            \\        cmp     ax, -1
-            \\        sete    al
-            \\        movzx   rax, al
-            \\        ret
-        );
-    } else {
-        // rdi, rsi, rdx, rcx
-        asm (
-            \\.intel_syntax noprefix
-            \\asm_sse2_eql:
-            \\        movups  xmm0, [rdi + rdx]
-            \\        movups  xmm1, [rsi + rdx]
-            \\        pcmpeqb xmm0, xmm1
-            \\        pmovmskb rax, xmm0
-            \\        cmp     ax, -1
-            \\        sete    al
-            \\        movzx   rax, al
-            \\        ret
-        );
-    }
-}
-
 /// SSE2 support check
 pub fn check() bool {
     @setRuntimeSafety(false);
-    return asm_sse2_check();
+    return asm (
+        \\.intel_syntax noprefix
+        \\ push   1
+        \\ pop    rax
+        \\ xchg   edi, ebx
+        \\ cpuid  
+        \\ xchg   edi, ebx
+        \\ mov    eax, edx
+        \\ shr    eax, 26
+        \\ and    eax, 1
+        : [_] "=r" (-> bool),
+    );
+}
+
+extern fn _sse2_asm_eql(ptr1: [*]const u8, ptr2: [*]const u8, off: usize) bool;
+comptime {
+    asm (
+        \\.intel_syntax noprefix
+        \\
+        ++ common.underscore_prefix("sse2_asm_eql:\n") ++
+            " movups  xmm0, [" ++ common.arg1_reg ++ " + " ++ common.arg3_reg ++ "]\n" ++
+            " movups  xmm1, [" ++ common.arg2_reg ++ " + " ++ common.arg3_reg ++ "]\n" ++
+            \\ pcmpeqb   xmm0, xmm1
+            \\ pmovmskb  rax, xmm0
+            \\ cmp       ax, -1
+            \\ sete      al
+            \\ ret
+    );
 }
 
 /// Equality check of a and b (a, b are bytes) using SSE2 instructions (16 bytes at a time) without:
@@ -68,7 +48,7 @@ pub fn eql_byte_nocheck(a: []const u8, b: []const u8) bool {
 
     var off: usize = 0;
     while (off < len) : (off +%= 16) {
-        if (!asm_sse2_eql(a.ptr, b.ptr, off)) {
+        if (!_sse2_asm_eql(a.ptr, b.ptr, off)) {
             return false;
         }
     }
