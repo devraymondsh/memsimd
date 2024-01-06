@@ -11,10 +11,10 @@ Zig's std SIMD strcmp took: 143ms
 No SIMD strcmp took: 199ms
 SSE2 strcmp took: 54ms
 SS4.2 strcmp took: 75ms
-AVX strcmp took: 46ms
+AVX strcmp took: 45ms
 ```
 
-Here are the benchmark's results on Mac M1 (Aarch64):
+Here are the benchmark's results on MacBook Air M1 2020 (Aarch64):
 ```
 C's builtin strcmp took: 528ms
 Zig's std SIMD strcmp took: 301ms
