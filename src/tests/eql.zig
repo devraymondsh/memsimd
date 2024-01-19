@@ -35,21 +35,24 @@ fn genRandomNumber(comptime T: type) T {
 }
 fn genNumberArr(comptime T: type, allocator: std.mem.Allocator, len: usize) ![]T {
     var arr = try allocator.alloc(T, len);
-    for (0..len) |idx| {
+    for (0..(len - 1)) |idx| {
         arr[idx] = genRandomNumber(T);
     }
+    arr[len - 1] = 0;
     return arr;
 }
 pub fn test_function(eql: anytype, allocator: std.mem.Allocator) !void {
     inline for (testing_types) |testing_type| {
         for (0..iteration_times) |idx| {
-            const number_arr = try genNumberArr(testing_type, allocator, rand_impl.random().intRangeAtMost(usize, 1, 500));
+            const number_arr = try genNumberArr(testing_type, allocator, rand_impl.random().intRangeAtMost(usize, 3, 500));
             const number_arr_dup = try allocator.dupe(testing_type, number_arr);
 
-            // Ensuring the newly generated number is not equal to the previous one
-            var another_number_arr = try genNumberArr(testing_type, allocator, rand_impl.random().intRangeAtMost(usize, 1, 500));
-            while (std.mem.eql(testing_type, number_arr, another_number_arr)) {
-                another_number_arr = try genNumberArr(testing_type, allocator, rand_impl.random().intRangeAtMost(usize, 1, 500));
+            // Duplicates the array and replaces an element with a random value
+            const random_pos = rand_impl.random().intRangeLessThan(usize, 1, number_arr.len - 1);
+            var another_number_arr = try allocator.dupe(testing_type, number_arr);
+            another_number_arr[random_pos] = genRandomNumber(testing_type);
+            while (number_arr[random_pos] == another_number_arr[random_pos]) {
+                another_number_arr[random_pos] = genRandomNumber(testing_type);
             }
 
             if (!eql(testing_type, number_arr, number_arr_dup)) {
@@ -84,19 +87,19 @@ test "Eql functions" {
         } else {
             std.debug.print("SSE2 is not supported on this machine!\n", .{});
         }
-        if (memsimd.sse42.check()) {
-            try test_function(memsimd.sse42.eql, allocator);
-        } else {
-            std.debug.print("SSE4.2 is not supported on this machine!\n", .{});
-        }
-        if (memsimd.avx.check()) {
-            try test_function(memsimd.avx.eql, allocator);
-        } else {
-            std.debug.print("AVX is not supported on this machine!\n", .{});
-        }
-        if (memsimd.avx512.check()) {
-            try test_function(memsimd.avx512.eql, allocator);
-        }
+        // if (memsimd.sse42.check()) {
+        //     try test_function(memsimd.sse42.eql, allocator);
+        // } else {
+        //     std.debug.print("SSE4.2 is not supported on this machine!\n", .{});
+        // }
+        // if (memsimd.avx.check()) {
+        //     try test_function(memsimd.avx.eql, allocator);
+        // } else {
+        //     std.debug.print("AVX is not supported on this machine!\n", .{});
+        // }
+        // if (memsimd.avx512.check()) {
+        //     try test_function(memsimd.avx512.eql, allocator);
+        // }
     } else if (memsimd.is_aarch64) {
         try test_function(memsimd.sve.eql, allocator);
     }

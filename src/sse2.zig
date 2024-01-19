@@ -6,32 +6,16 @@ const common = @import("common.zig");
 pub fn check() bool {
     @setRuntimeSafety(false);
     return asm (
-        \\.intel_syntax noprefix
-        \\ push   1
-        \\ pop    rax
-        \\ xchg   edi, ebx
-        \\ cpuid  
-        \\ xchg   edi, ebx
-        \\ mov    eax, edx
-        \\ shr    eax, 26
-        \\ and    eax, 1
+        \\.att_syntax
+        \\push   $1
+        \\pop    %rax
+        \\xchg   %ebx, %edi
+        \\cpuid  
+        \\xchg   %ebx, %edi
+        \\mov    %edx, %eax
+        \\shr    $26, %eax
+        \\and    $1, %eax
         : [_] "=r" (-> bool),
-    );
-}
-
-extern fn _sse2_asm_eql(ptr1: [*]const u8, ptr2: [*]const u8, off: usize) bool;
-comptime {
-    asm (
-        \\.intel_syntax noprefix
-        \\
-        ++ common.underscore_prefix("sse2_asm_eql:\n") ++
-            " movups  xmm0, [" ++ common.arg1_reg ++ " + " ++ common.arg3_reg ++ "]\n" ++
-            " movups  xmm1, [" ++ common.arg2_reg ++ " + " ++ common.arg3_reg ++ "]\n" ++
-            \\ pcmpeqb   xmm0, xmm1
-            \\ pmovmskb  rax, xmm0
-            \\ cmp       ax, -1
-            \\ sete      al
-            \\ ret
     );
 }
 
@@ -45,10 +29,24 @@ pub fn eql_byte_nocheck(a: []const u8, b: []const u8) bool {
 
     const rem: usize = a.len & 0xf;
     const len: usize = a.len -% rem;
+    const ptra = a.ptr;
+    const ptrb = b.ptr;
 
     var off: usize = 0;
     while (off < len) : (off +%= 16) {
-        if (!_sse2_asm_eql(a.ptr, b.ptr, off)) {
+        const res = asm (
+            \\.att_syntax
+            \\movups    (%[ptra], %[off]), %xmm0
+            \\movups    (%[ptrb], %[off]), %xmm1
+            \\pcmpeqb   %xmm1, %xmm0
+            \\pmovmskb  %xmm0, %rax
+            : [ret] "={ax}" (-> u16),
+            : [ptra] "r" (ptra),
+              [off] "r" (off),
+              [ptrb] "r" (ptrb),
+            : "cc"
+        );
+        if (res != 65535) {
             return false;
         }
     }
