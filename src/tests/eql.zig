@@ -55,12 +55,14 @@ pub fn test_function(eql: anytype, allocator: std.mem.Allocator) !void {
                 another_number_arr[random_pos] = genRandomNumber(testing_type);
             }
 
+            // std.debug.print("Expecting true\n", .{});
             if (!eql(testing_type, number_arr, number_arr_dup)) {
                 std.debug.print("Comparison error. Expected true but got false.\n", .{});
                 std.debug.print("Left: {any}.\n", .{number_arr});
                 std.debug.print("Right: {any}.\n", .{number_arr_dup});
                 std.debug.panic("Iteration index: {any}\n", .{idx});
             }
+            // std.debug.print("Expecting false\n", .{});
             if (eql(testing_type, number_arr, another_number_arr)) {
                 std.debug.print("Comparison error. Expected false but got true.\n", .{});
                 std.debug.print("Left: {any}.\n", .{number_arr});

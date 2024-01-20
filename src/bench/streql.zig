@@ -59,17 +59,6 @@ pub fn main() !void {
     }
     const strcmp_elapsed_time = std.time.milliTimestamp() - strcmp_start_time;
 
-    const std_start_time = std.time.milliTimestamp();
-    for (string_array1.items, 0..) |item, idx| {
-        if (!std.mem.eql(u8, item, string_array2.items[idx])) {
-            std.debug.panic("Wrong comparison!\n", .{});
-        }
-        if (std.mem.eql(u8, item, "@@@@@@@@@@@@@@@@@@@@@")) {
-            std.debug.panic("Wrong comparison!\n", .{});
-        }
-    }
-    const std_elapsed_time = std.time.milliTimestamp() - std_start_time;
-
     const nosimd_start_time = std.time.milliTimestamp();
     for (string_array1.items, 0..) |item, idx| {
         if (!memsimd.nosimd.eql(u8, item, string_array2.items[idx])) {
@@ -129,26 +118,25 @@ pub fn main() !void {
         std.debug.print("AVX2 is not supported on this machine!\n", .{});
     }
 
-    try stdout.print("\nC's builtin strcmp took: {any}ms\n", .{strcmp_elapsed_time});
-    try stdout.print("Zig's std strcmp took: {any}ms\n", .{std_elapsed_time});
+    try stdout.print("\nC's strcmp took: {any}ms\n", .{strcmp_elapsed_time});
     try stdout.print("No SIMD strcmp took: {any}ms\n", .{nosimd_elapsed_time});
     try stdout.print("SSE2 strcmp took: {any}ms\n", .{sse2_elapsed_time});
     try stdout.print("SS4.2 strcmp took: {any}ms\n", .{sse42_elapsed_time});
     try stdout.print("AVX2 strcmp took: {any}ms\n", .{avx2_elapsed_time});
 
-    if (memsimd.is_x86_64 and memsimd.avx512.check()) {
-        const avx512_start_time = std.time.milliTimestamp();
-        for (string_array1.items, 0..) |item, idx| {
-            if (!memsimd.avx512.eql(u8, item, string_array2.items[idx])) {
-                std.debug.panic("Wrong comparison!\n", .{});
-            }
-            if (memsimd.avx512.eql(u8, item, "@@@@@@@@@@@@@@@@@@@@@")) {
-                std.debug.panic("Wrong comparison!\n", .{});
-            }
-        }
-        const avx512_elapsed_time = std.time.milliTimestamp() - avx512_start_time;
-        try stdout.print("AVX strcmp took: {any}ms\n", .{avx512_elapsed_time});
-    }
+    // if (memsimd.is_x86_64 and memsimd.avx512.check()) {
+    //     const avx512_start_time = std.time.milliTimestamp();
+    //     for (string_array1.items, 0..) |item, idx| {
+    //         if (!memsimd.avx512.eql(u8, item, string_array2.items[idx])) {
+    //             std.debug.panic("Wrong comparison!\n", .{});
+    //         }
+    //         if (memsimd.avx512.eql(u8, item, "@@@@@@@@@@@@@@@@@@@@@")) {
+    //             std.debug.panic("Wrong comparison!\n", .{});
+    //         }
+    //     }
+    //     const avx512_elapsed_time = std.time.milliTimestamp() - avx512_start_time;
+    //     try stdout.print("AVX strcmp took: {any}ms\n", .{avx512_elapsed_time});
+    // }
 
     if (memsimd.is_aarch64) {
         var sve_elapsed_time: i64 = 0;

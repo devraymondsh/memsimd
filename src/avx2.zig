@@ -46,7 +46,7 @@ pub fn eql_byte_nocheck(a: []const u8, b: []const u8) bool {
               [ptrb] "r" (ptrb),
             : "cc"
         );
-        if (res != 4294967295) {
+        if (res != 0b11111111111111111111111111111111) {
             return false;
         }
     }

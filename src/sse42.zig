@@ -16,21 +16,7 @@ pub fn check() bool {
     );
 }
 
-extern fn _sse42_asm_eql(ptr1: [*]const u8, ptr2: [*]const u8, len: usize, off: usize) bool;
-comptime {
-    asm (
-        \\.intel_syntax noprefix
-        \\
-        ++ common.underscore_prefix("sse42_asm_eql:\n") ++
-            " movdqu  xmm0, xmmword ptr [" ++ common.arg1_reg ++ " + " ++ common.arg4_reg ++ "]\n" ++
-            " movdqu  xmm1, xmmword ptr [" ++ common.arg2_reg ++ " + " ++ common.arg4_reg ++ "]\n" ++
-            " mov rax, " ++ common.arg3_reg ++ "\n" ++
-            " mov rdx, " ++ common.arg3_reg ++ "\n" ++
-            \\ pcmpestri  xmm0, xmm1, 24
-            \\ setae      al
-            \\ ret
-    );
-}
+const std = @import("std");
 
 /// Equality check of a and b (a, b are bytes) using SSE4.2 instructions (16 bytes at a time) without:
 /// 1: Checking the length of a and b (ensure they're equal)
@@ -42,15 +28,28 @@ pub fn eql_byte_nocheck(a: []const u8, b: []const u8) bool {
 
     const rem: usize = a.len & 0xf;
     const len: usize = a.len -% rem;
+    const ptra = a.ptr;
+    const ptrb = b.ptr;
 
     var off: usize = 0;
-    while (off != len) : (off +%= 16) {
-        if (!_sse42_asm_eql(a.ptr, b.ptr, 16, off)) {
-            return false;
-        }
-    }
-    if (rem != 0) {
-        if (!_sse42_asm_eql(a.ptr, b.ptr, rem, off)) {
+    while (off < (len + 16)) : (off +%= 16) {
+        const slice_len = off - a.len;
+        const res = asm (
+            \\.att_syntax
+            \\movdqu     (%[ptra], %[off]), %xmm0
+            \\movdqu     (%[ptrb], %[off]), %xmm1
+            \\mov        %[slice_len], %rax
+            \\mov        %rax, %rdx
+            \\pcmpestrm  $72, %xmm1, %xmm0
+            \\pmovmskb   %xmm0, %rax
+            : [ret] "={ax}" (-> u16),
+            : [ptra] "r" (ptra),
+              [off] "r" (off),
+              [ptrb] "r" (ptrb),
+              [slice_len] "r" (slice_len),
+            : "cc"
+        );
+        if (res != 0b1111111111111111) {
             return false;
         }
     }

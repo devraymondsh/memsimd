@@ -2,22 +2,20 @@
 This Zig library offers a set of memory utilities optimized with SIMD (Single Instruction, Multiple Data) features, specifically leveraging SSE2, SSE4.2, and AVX instructions. These utilities aim to accelerate common memory operations for improved performance on compatible CPUs.
 
 ### Benchmarks
-One of the main goals of this library is to provide a fast way to compare two slices. Here's a benchmark conducted by comparing a million strings with random lengths. According to the benchmark the AVX version is roughly 3.5x, SSE2 and SSE4.2 versions are roughly 3x faster than normal string comparison.
+One of the main goals of this library is to provide a fast way to compare two slices. Here's a benchmark conducted by comparing a million strings with random lengths. According to the benchmark the AVX2 version is roughly 4.8x, SSE2 and SSE4.2 versions are roughly 3x faster than normal string comparison.
 
 Here are the benchmark's results on the Intel core i5 12400. As you can see some CPUs like this may use AVX's performance capabilities for SSE2 instructions. So don't always expect the SSE4.2 to be faster than the SSE2 version.
 ```
-C's builtin strcmp took: 148ms
-Zig's std SIMD strcmp took: 143ms
+C's strcmp took: 156ms
 No SIMD strcmp took: 199ms
-SSE2 strcmp took: 54ms
-SS4.2 strcmp took: 75ms
-AVX strcmp took: 45ms
+SSE2 strcmp took: 50ms
+SS4.2 strcmp took: 79ms
+AVX2 strcmp took: 41ms
 ```
 
 Here are the benchmark's results on MacBook Air M1 2020 (Aarch64):
 ```
-C's builtin strcmp took: 528ms
-Zig's std SIMD strcmp took: 301ms
+C's strcmp took: 528ms
 No SIMD strcmp took: 287ms
 SVE strcmp took: 55ms
 ```
