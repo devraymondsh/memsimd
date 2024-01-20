@@ -5,21 +5,16 @@ const common = @import("common.zig");
 /// AVX512 (AVX-512BW) support check
 pub fn check() bool {
     @setRuntimeSafety(false);
-    return asm volatile (
-        \\.intel_syntax noprefix
-        \\ push    1
-        \\ pop     rax
-        \\ xchg    edi, ebx
-        \\ cpuid
-        \\ xchg    edi, ebx
-        \\ mov     eax, ecx
-        \\ shr     eax, 16
-        \\ and     eax, 1
-        \\ shl     ecx, 14
-        \\ shr     ecx, 30
-        \\ and     ecx, 1
-        \\ or      eax, ecx
-        : [_] "=r" (-> bool),
+    return asm (
+        \\.att_syntax
+        \\mov    $0, %ebx
+        \\mov    $0, %ecx
+        \\mov    $7, %eax
+        \\cpuid  
+        \\mov    %ebx, %eax
+        \\shr    $30, %eax
+        \\and    $1, %eax
+        : [ret] "={eax}" (-> bool),
     );
 }
 

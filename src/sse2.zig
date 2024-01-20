@@ -7,15 +7,13 @@ pub fn check() bool {
     @setRuntimeSafety(false);
     return asm (
         \\.att_syntax
-        \\push   $1
-        \\pop    %rax
-        \\xchg   %ebx, %edi
+        \\mov    $0, %edx
+        \\mov    $1, %eax
         \\cpuid  
-        \\xchg   %ebx, %edi
         \\mov    %edx, %eax
         \\shr    $26, %eax
         \\and    $1, %eax
-        : [_] "=r" (-> bool),
+        : [ret] "={eax}" (-> bool),
     );
 }
 

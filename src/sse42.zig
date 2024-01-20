@@ -4,17 +4,15 @@ const common = @import("common.zig");
 /// SSE4.2 support check
 pub fn check() bool {
     @setRuntimeSafety(false);
-    return asm volatile (
-        \\.intel_syntax noprefix
-        \\ push   1
-        \\ pop    rax
-        \\ xchg   edi, ebx
-        \\ cpuid  
-        \\ xchg   edi, ebx
-        \\ mov    eax, ecx
-        \\ shr    eax, 20
-        \\ and    eax, 1
-        : [_] "=r" (-> bool),
+    return asm (
+        \\.att_syntax
+        \\mov    $0, %ecx
+        \\mov    $1, %eax
+        \\cpuid  
+        \\mov    %ecx, %eax
+        \\shr    $20, %eax
+        \\and    $1, %eax
+        : [ret] "={eax}" (-> bool),
     );
 }
 

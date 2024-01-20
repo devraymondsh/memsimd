@@ -113,28 +113,28 @@ pub fn main() !void {
         std.debug.print("SSE4.2 is not supported on this machine!\n", .{});
     }
 
-    var avx_elapsed_time: i64 = 0;
-    if (memsimd.is_x86_64 and memsimd.avx.check()) {
-        const avx_start_time = std.time.milliTimestamp();
+    var avx2_elapsed_time: i64 = 0;
+    if (memsimd.is_x86_64 and memsimd.avx2.check()) {
+        const avx2_start_time = std.time.milliTimestamp();
         for (string_array1.items, 0..) |item, idx| {
-            if (!memsimd.avx.eql(u8, item, string_array2.items[idx])) {
+            if (!memsimd.avx2.eql(u8, item, string_array2.items[idx])) {
                 std.debug.panic("Wrong comparison!\n", .{});
             }
-            if (memsimd.avx.eql(u8, item, "@@@@@@@@@@@@@@@@@@@@@")) {
+            if (memsimd.avx2.eql(u8, item, "@@@@@@@@@@@@@@@@@@@@@")) {
                 std.debug.panic("Wrong comparison!\n", .{});
             }
         }
-        avx_elapsed_time = std.time.milliTimestamp() - avx_start_time;
+        avx2_elapsed_time = std.time.milliTimestamp() - avx2_start_time;
     } else {
-        std.debug.print("AVX is not supported on this machine!\n", .{});
+        std.debug.print("AVX2 is not supported on this machine!\n", .{});
     }
 
     try stdout.print("\nC's builtin strcmp took: {any}ms\n", .{strcmp_elapsed_time});
-    try stdout.print("Zig's std SIMD strcmp took: {any}ms\n", .{std_elapsed_time});
+    try stdout.print("Zig's std strcmp took: {any}ms\n", .{std_elapsed_time});
     try stdout.print("No SIMD strcmp took: {any}ms\n", .{nosimd_elapsed_time});
     try stdout.print("SSE2 strcmp took: {any}ms\n", .{sse2_elapsed_time});
     try stdout.print("SS4.2 strcmp took: {any}ms\n", .{sse42_elapsed_time});
-    try stdout.print("AVX strcmp took: {any}ms\n", .{avx_elapsed_time});
+    try stdout.print("AVX2 strcmp took: {any}ms\n", .{avx2_elapsed_time});
 
     if (memsimd.is_x86_64 and memsimd.avx512.check()) {
         const avx512_start_time = std.time.milliTimestamp();

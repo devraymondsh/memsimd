@@ -65,6 +65,7 @@ pub fn test_function(eql: anytype, allocator: std.mem.Allocator) !void {
                 std.debug.print("Comparison error. Expected false but got true.\n", .{});
                 std.debug.print("Left: {any}.\n", .{number_arr});
                 std.debug.print("Right: {any}.\n", .{another_number_arr});
+                std.debug.print("Difference in position: {any}\n", .{random_pos});
                 std.debug.panic("Iteration index: {any}\n", .{idx});
             }
         }
@@ -87,16 +88,16 @@ test "Eql functions" {
         } else {
             std.debug.print("SSE2 is not supported on this machine!\n", .{});
         }
-        // if (memsimd.sse42.check()) {
-        //     try test_function(memsimd.sse42.eql, allocator);
-        // } else {
-        //     std.debug.print("SSE4.2 is not supported on this machine!\n", .{});
-        // }
-        // if (memsimd.avx.check()) {
-        //     try test_function(memsimd.avx.eql, allocator);
-        // } else {
-        //     std.debug.print("AVX is not supported on this machine!\n", .{});
-        // }
+        if (memsimd.sse42.check()) {
+            try test_function(memsimd.sse42.eql, allocator);
+        } else {
+            std.debug.print("SSE4.2 is not supported on this machine!\n", .{});
+        }
+        if (memsimd.avx2.check()) {
+            try test_function(memsimd.avx2.eql, allocator);
+        } else {
+            std.debug.print("AVX2 is not supported on this machine!\n", .{});
+        }
         // if (memsimd.avx512.check()) {
         //     try test_function(memsimd.avx512.eql, allocator);
         // }
